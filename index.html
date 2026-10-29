@@ -414,6 +414,14 @@ body { font-size: 18px; }
 .foot .in { font-size: 1.05rem; }
 .ibtn.aa { font-size: 1rem; }
 
+/* settings sheet: staged choices + confirm */
+.setfoot { position: sticky; bottom: calc(-20px - env(safe-area-inset-bottom, 0px)); margin: 8px calc(-1 * max(16px, env(safe-area-inset-left, 0px))) calc(-20px - env(safe-area-inset-bottom, 0px)); padding: 10px max(16px, env(safe-area-inset-left, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--bg); border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+.sethint { font-size: .98rem; color: var(--ink-2); text-align: center; line-height: 1.7; }
+.sethint.on { color: var(--crimson); font-weight: 700; }
+.setbtns { display: flex; gap: 10px; }
+.setbtns .cta { flex: 2; min-height: 52px; font-size: 1.15rem; }
+.setbtns .cta.alt { flex: 1; }
+
 </style>
 <div id="app"></div>
 <script>
@@ -1418,25 +1426,43 @@ const RAJAB = [
   function closeMap() { const b = $('#sheetBack'); if (b) b.remove(); }
 
   /* ---------------- settings sheet ---------------- */
+  /* Choices are staged in a draft (D) and only applied/saved when the pilgrim taps «موافق». */
+  const PKEYS = ['fs', 'wt', 'font', 'theme'];
+  let D = null;
+  const dirty = () => !!D && PKEYS.some(k => String(D[k]) !== String(S[k]));
   function segSet(k, cur, opts) {
     return `<div class="kinds" role="radiogroup">${opts.map(o => `<button class="kind" role="radio" aria-checked="${String(cur) === String(o[0])}" data-act="set" data-k="${k}" data-v="${o[0]}">${o[1]}</button>`).join('')}</div>`;
   }
   function settingsBody() {
-    return `<div class="duacard" style="margin-block:4px 6px"><div class="cap"><span>معاينة</span></div><div class="dua"><p>اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ وَآلِ مُحَمَّدٍ، وَاغْفِرْ لِي وَارْحَمْنِي</p></div></div>
-      <div class="setrow"><div class="lb">حجم الخط</div>${segSet('fs', S.fs, [[0, 'عادي'], [1, 'كبير'], [2, 'أكبر']])}</div>
-      <div class="setrow"><div class="lb">سمك خط الأدعية</div>${segSet('wt', S.wt, [['n', 'عادي'], ['b', 'عريض']])}</div>
-      <div class="setrow"><div class="lb">نوع خط النسخ</div>${segSet('font', S.font, Object.keys(FONTS).map(k => [k, FONTS[k].label]))}</div>
-      <div class="setrow"><div class="lb">المظهر</div>${segSet('theme', S.theme, [['auto', 'تلقائي'], ['light', 'فاتح'], ['dark', 'داكن']])}</div>`;
+    const d = dirty();
+    return `<div class="duacard" id="setPrev" style="margin-block:4px 6px"><div class="cap"><span>معاينة</span></div><div class="dua"><p>اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ وَآلِ مُحَمَّدٍ، وَاغْفِرْ لِي وَارْحَمْنِي</p></div></div>
+      <div class="setrow"><div class="lb">حجم الخط</div>${segSet('fs', D.fs, [[0, 'عادي'], [1, 'كبير'], [2, 'أكبر']])}</div>
+      <div class="setrow"><div class="lb">سمك خط الأدعية</div>${segSet('wt', D.wt, [['n', 'عادي'], ['b', 'عريض']])}</div>
+      <div class="setrow"><div class="lb">نوع خط النسخ</div>${segSet('font', D.font, Object.keys(FONTS).map(k => [k, FONTS[k].label]))}</div>
+      <div class="setrow"><div class="lb">المظهر</div>${segSet('theme', D.theme, [['auto', 'تلقائي'], ['light', 'فاتح'], ['dark', 'داكن']])}</div>
+      <div class="setfoot">
+        <div class="sethint${d ? ' on' : ''}" role="status">${d ? 'اخترتَ تغييرات لم تُطبَّق بعد — اضغط «موافق» لتطبيقها.' : 'اختر ما تريد ثم اضغط «موافق» لتطبيقه.'}</div>
+        <div class="setbtns"><button class="cta" data-act="setok">${svg('check')}موافق</button><button class="cta alt" data-act="closeset">إلغاء</button></div>
+      </div>`;
+  }
+  function paintPrev() {
+    const c = $('#setPrev'); if (!c || !D) return;
+    const f = FONTS[D.font] || FONTS.amiri; ensureFont(D.font in FONTS ? D.font : 'amiri');
+    c.style.setProperty('--fs', FS_LEVELS[D.fs] || 1);
+    c.style.setProperty('--f-naskh', f.stack);
+    c.style.setProperty('--duaw', D.wt === 'b' ? 700 : 400);
   }
   function openSettings() {
     closeSettings();
+    D = {}; PKEYS.forEach(k => { D[k] = S[k]; });
     const back = document.createElement('div'); back.className = 'sheet-back'; back.id = 'setBack';
-    back.innerHTML = `<div class="sheet" role="dialog" aria-label="إعدادات العرض"><div class="hd"><b>إعدادات العرض</b><button class="ibtn" data-act="closeset" aria-label="إغلاق">${svg('x')}</button></div><div id="setBody">${settingsBody()}</div></div>`;
+    back.innerHTML = `<div class="sheet" role="dialog" aria-label="إعدادات العرض"><div class="hd"><b>إعدادات العرض</b><button class="ibtn" data-act="closeset" aria-label="إغلاق دون تطبيق">${svg('x')}</button></div><div id="setBody">${settingsBody()}</div></div>`;
     back.addEventListener('click', e => { if (e.target === back) closeSettings(); });
     document.body.appendChild(back);
+    paintPrev();
   }
-  function paintSettings() { const b = $('#setBody'); if (b) b.innerHTML = settingsBody(); }
-  function closeSettings() { const b = $('#setBack'); if (b) b.remove(); }
+  function paintSettings() { const b = $('#setBody'); if (b) { b.innerHTML = settingsBody(); paintPrev(); } }
+  function closeSettings() { const b = $('#setBack'); if (b) b.remove(); D = null; }
 
   /* ---------------- router ---------------- */
   function parseRoute() {
@@ -1478,9 +1504,17 @@ const RAJAB = [
     settings() { openSettings(); },
     closeset() { closeSettings(); },
     set(el) {
+      if (!D) return;
       const k = el.dataset.k, v = el.dataset.v;
-      if (k === 'fs') S.fs = +v; else if (k === 'wt') S.wt = v; else if (k === 'font') S.font = v; else if (k === 'theme') S.theme = v;
-      save(); applyPrefs(); paintSettings();
+      if (k === 'fs') D.fs = +v; else if (PKEYS.includes(k)) D[k] = v;
+      paintSettings();
+    },
+    setok() {
+      if (!D) return;
+      const ch = dirty();
+      if (ch) { PKEYS.forEach(k => { S[k] = D[k]; }); save(); applyPrefs(); }
+      closeSettings();
+      if (ch) toast('تم تطبيق إعدادات العرض');
     },
     copy(el) { const n = $('#niaTx'); if (n) copyText(n.textContent, n); },
     'cp-num'(el) { copyText(el.dataset.p, el.parentNode.querySelector('.ph')); },
