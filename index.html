@@ -69,7 +69,7 @@ h1, h2, h3, p { margin: 0; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 .in { width: 100%; max-width: 600px; margin-inline: auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-.page { min-height: 100vh; display: flex; flex-direction: column; }
+.page { min-height: 100%; display: flex; flex-direction: column; }
 .page > main { flex: 1 0 auto; }
 .num { font-variant-numeric: tabular-nums; }
 
@@ -434,15 +434,23 @@ body { font-size: 18px; }
 .ritem small.tg { color: var(--gold-deep); font-weight: 700; }
 .srcnote { margin-top: 18px; color: var(--ink-2); font-size: .95rem; text-align: center; }
 
-/* عدّاد الأشواط: عبارة «أنت في الشوط ...» */
-.ring .of { font-size: 1.02rem; color: var(--ink-2); margin: 0 0 2px; }
-.ring .big.ord { font-size: 2.15rem; line-height: 1.25; }
+/* عدّاد الأشواط: عبارة «أنت في الشوط ...» — سطران بينهما مسافة صريحة حتى لا يلتصقا (همزة «الأول» وأقدام الحروف) */
+.ring .mid { line-height: 1.5; gap: 12px; }
+.ring .of { font-size: 1rem; line-height: 1.7; color: var(--ink-2); margin: 0; padding-top: 2px; }
+.ring .big.ord { font-size: 2.05rem; line-height: 1.7; margin: 0; }
 .hint .prog { color: var(--ink-2); font-size: .95rem; }
 .hint b { font-size: 1.2rem; color: var(--ink); }
 
 /* الشريط السفلي والنقر على الجوال */
 button, a, [data-act] { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .dock { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--bg); transform: translateZ(0); -webkit-transform: translateZ(0); }
+
+/* ---------- التمرير داخل التطبيق لا داخل المستند ----------
+   سبب «الضغطة الأولى لا تعمل» على سفاري الجوال: عند تمرير المستند يطوي المتصفح شريطيه، وأول لمسة قرب أسفل الشاشة
+   يستهلكها المتصفح ليُظهر الشريطين فتتغيّر مساحة الصفحة، ثم تعمل الضغطة الثانية.
+   فنجعل المستند نفسه ثابتًا لا يتمرّر، والتمرير داخل #app، فيبقى الشريطان على حالهما ولا تتغيّر المساحة. */
+html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+#app { position: fixed; inset: 0; overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
 
 </style>
 <div id="app"></div>
@@ -2045,7 +2053,7 @@ const DUAS = [
       default: out = viewHome();
     }
     $('#app').innerHTML = out.html;
-    window.scrollTo(0, 0);
+    $('#app').scrollTop = 0;
     if (out.after) out.after();
     keepAwake(CUR.v === 'run');
   }
@@ -2119,7 +2127,7 @@ const DUAS = [
     box.querySelector('.bar2 i').style.width = Math.min(100, n / T * 100) + '%';
     box.querySelector('.n').textContent = n + '/' + T; box.classList.toggle('done', n >= T);
   }
-  function keepScroll(fn) { const y = window.scrollY; fn(); window.scrollTo(0, y); }
+  function keepScroll(fn) { const sc = $('#app'), y = sc.scrollTop; fn(); sc.scrollTop = y; }
 
   let lastFire = 0;
   const fire = (el, e) => { if (!el || el.disabled) return; const fn = ACTS[el.dataset.act]; if (fn) fn(el, e); };
