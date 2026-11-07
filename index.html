@@ -452,6 +452,32 @@ button, a, [data-act] { touch-action: manipulation; -webkit-tap-highlight-color:
 html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
 #app { position: fixed; inset: 0; overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
 
+/* ---------- تسبيح الزهراء (ع) ---------- */
+.zchips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; }
+.zc { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 6px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); line-height: 1.4; }
+.zc b { font-family: var(--f-display); font-weight: 700; font-size: 1rem; }
+.zc span { font-size: .9rem; }
+.zc.d { background: var(--teal-soft); border-color: var(--teal); color: var(--teal-deep); }
+.zc.c { background: var(--gold-soft); border-color: var(--gold); color: var(--ink); box-shadow: 0 0 0 2px var(--gold-soft); }
+.zph { font-family: var(--f-display); font-weight: 700; font-size: 2.1rem; line-height: 1.55; padding-block: 8px 4px; color: var(--ink); text-align: center; text-align-last: center; }
+#zCtr { gap: 8px; padding-top: 14px; }
+.ring.z .mid { gap: 0; line-height: 1.2; }
+.ring.z .big { font-size: 3.3rem; line-height: 1.15; margin: 0; }
+.ring.z .of { font-size: 1rem; line-height: 1.5; padding: 0; margin: 0; }
+.hint.zh { min-height: 0; }
+.ctr .cta { width: 100%; }
+.dock button.zt { min-height: 68px; font-size: 1.45rem; }
+.dock button.zt[disabled] { background: var(--surface-2); color: var(--ink-2); opacity: .9; }
+.ctr .minor button { font-size: 1rem; }
+.zph.flash { animation: zflash .7s ease-out; }
+@keyframes zflash { 0% { transform: scale(.82); opacity: .2; } 60% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .zph.flash { animation: none; } }
+@media (max-height: 720px) {
+  .ring.z { width: 140px; height: 140px; }
+  .ring.z .big { font-size: 2.8rem; }
+  .zph { font-size: 1.95rem; }
+}
+
 </style>
 <div id="app"></div>
 <script>
@@ -1442,7 +1468,7 @@ const DUAS = [
   const LS_KEY = 'khalaf.app.v1';
   let S = load();
   function load() {
-    const base = { theme: 'auto', fs: 0, wt: 'n', font: 'amiri', flows: {}, dhikr: {} };
+    const base = { theme: 'auto', fs: 0, wt: 'n', font: 'amiri', flows: {}, dhikr: {}, zahra: { s: 0, n: 0, done: false } };
     try { const o = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); if (o && typeof o === 'object') return Object.assign(base, o); } catch (e) { /* ignore */ }
     return base;
   }
@@ -1458,6 +1484,24 @@ const DUAS = [
   }
   function kindOf(id) { const f = ensureFlow(id); return FLOWS[id].kinds.find(k => k.id === f.kind) || FLOWS[id].kinds[0]; }
   function built(id) { return FLOWS[id].build(kindOf(id), ensureFlow(id).name); }
+
+  /* ---------------- تسبيح الزهراء (ع): 34 تكبيرة ثم 33 تحميدة ثم 33 تسبيحة ---------------- */
+  const ZAHRA = [
+    { x: 'اللَّهُ أَكْبَرُ', k: 'التكبير', w: 'تكبيرة', ord: 'الأولى', n: 34 },
+    { x: 'الْحَمْدُ لِلَّهِ', k: 'التحميد', w: 'تحميدة', ord: 'الثانية', n: 33 },
+    { x: 'سُبْحَانَ اللَّهِ', k: 'التسبيح', w: 'تسبيحة', ord: 'الثالثة', n: 33 },
+  ];
+  const ZAHRA_ALL = ZAHRA.reduce((a, s) => a + s.n, 0);
+  const ZAHRA_FADL = [
+    { by: 'عن الإمام الباقر (عليه السلام) — وسائل الشيعة، بالمضمون', x: 'ما عُبد الله بشيء من التحميد أفضل من تسبيح فاطمة (عليها السلام)، ولو كان شيء أفضل منه لأعطاه رسول الله (صلى الله عليه وآله) فاطمة (عليها السلام).' },
+    { by: 'عن الإمام الصادق (عليه السلام) — تهذيب الأحكام، بالمضمون', x: 'من سبّح تسبيح فاطمة (عليها السلام) قبل أن يثني رجليه بعد صلاة الفريضة غُفر له.' },
+    { by: 'عن الإمام الصادق (عليه السلام) — بحار الأنوار، بالمضمون', x: 'من سبّحه في دبر الصلاة المكتوبة قبل أن يبسط رجليه أوجب الله له الجنة.' },
+  ];
+  function Z() {
+    let z = S.zahra; if (!z || typeof z !== 'object') z = S.zahra = { s: 0, n: 0, done: false };
+    z.s = clamp(z.s | 0, 0, ZAHRA.length - 1); z.n = clamp(z.n | 0, 0, ZAHRA[z.s].n - 1); z.done = !!z.done;
+    return z;
+  }
 
   /* ---------------- helpers ---------------- */
   const $ = s => document.querySelector(s);
@@ -1546,7 +1590,7 @@ const DUAS = [
     try { navigator.clipboard.writeText(t).then(() => toast('تم النسخ'), fallback); } catch (e) { fallback(); }
   }
   function confirmTap(el, msg, fn) {
-    if (el._arm) { clearTimeout(el._arm); el._arm = null; fn(); return; }
+    if (el._arm) { clearTimeout(el._arm); el._arm = null; el.textContent = el._orig; el.classList.remove('warn'); fn(); return; }
     el._orig = el.textContent; el.textContent = msg; el.classList.add('warn');
     el._arm = setTimeout(() => { el._arm = null; el.textContent = el._orig; el.classList.remove('warn'); }, 3200);
   }
@@ -1597,11 +1641,13 @@ const DUAS = [
 
   /* ---------------- home ---------------- */
   function viewHome() {
-    const resume = ['umra', 'hajj'].map(id => {
+    let resume = ['umra', 'hajj'].map(id => {
       const f = S.flows[id]; if (!f || !f.started || f.finished) return '';
       const b = built(id); const st = b.steps[clamp(f.i, 0, b.steps.length - 1)];
       return `<a class="resume" href="#${id}-run"><div class="t"><div class="k">أعمالك الجارية</div><div class="v">${esc(FLOWS[id].name)} · ${esc(st.title)}</div></div><span class="go">تابع</span></a>`;
     }).join('');
+    const zz = Z();
+    if (!zz.done && (zz.s > 0 || zz.n > 0)) resume += `<a class="resume" href="#zahra"><div class="t"><div class="k">تسبيح الزهراء (ع) قيد العدّ</div><div class="v">${esc(ZAHRA[zz.s].k)} · <span class="num">${zz.n}</span> من <span class="num">${ZAHRA[zz.s].n}</span></div></div><span class="go">تابع</span></a>`;
     const nU = buildUmra(UMRA_KINDS[0], '').steps.length, nH = buildHajj(HAJJ_KINDS[0], '').steps.length;
     const body = `
       <section class="hero">
@@ -1620,6 +1666,7 @@ const DUAS = [
             <a class="mcard" href="#umra"><span class="ic">${svg('kaaba')}</span><div><h2>العمرة المفردة</h2><p>${nU} مراحل بالنية والتلبية وعدّاد الأشواط</p></div><span class="chev">${svg('chevL')}</span></a>
             <a class="mcard" href="#hajj"><span class="ic">${svg('hajj')}</span><div><h2>الحج</h2><p>حج التمتع: عمرة التمتع ثم أعمال الحج في ${nH} مرحلة</p></div><span class="chev">${svg('chevL')}</span></a>
             <a class="mcard" href="#duas"><span class="ic">${svg('book')}</span><div><h2>الأدعية والتعقيبات</h2><p>التعقيبات وأدعية الأيام والصباح وكميل والسمات</p></div><span class="chev">${svg('chevL')}</span></a>
+            <a class="mcard" href="#zahra"><span class="ic">${svg('beads')}</span><div><h2>تسبيح الزهراء (ع)</h2><p>عدّاد التكبير والتحميد والتسبيح</p></div><span class="chev">${svg('chevL')}</span></a>
             <a class="mcard gold" href="#rajab"><span class="ic">${svg('moonstar')}</span><div><h2>أعمال شهر رجب</h2><p>الفضائل والأذكار والصلوات والأدعية</p></div><span class="chev">${svg('chevL')}</span></a>
           </div>
         </div>
@@ -1913,6 +1960,50 @@ const DUAS = [
     return { html: page({ title: 'أعمال شهر رجب', body }) };
   }
 
+  /* ---------------- تسبيح الزهراء (ع) ---------------- */
+  function viewZahra() {
+    const body = `${crumb('#home', 'الرئيسية')}<h1 class="ttl">تسبيح الزهراء (عليها السلام)</h1>
+      <div class="ctr" id="zCtr">
+        <div class="zchips" id="zChips" aria-hidden="true"></div>
+        <div class="zph" id="zPh" aria-live="polite"></div>
+        <div class="ring z" id="zRing"><svg viewBox="0 0 168 168" aria-hidden="true"><circle class="trk" cx="84" cy="84" r="76" fill="none" stroke-width="10"/><circle class="prg" id="zPrg" cx="84" cy="84" r="76" fill="none" stroke-width="10" stroke-linecap="round" style="stroke-dasharray:${CIRC};stroke-dashoffset:${CIRC}"/></svg><div class="mid" id="zMid"></div></div>
+        <div class="hint zh" id="zHint"></div>
+        <div id="zFin" style="width:100%"></div>
+        <div class="minor"><button data-act="zr">إعادة العدّ من البداية</button></div>
+      </div>
+      <div class="h3">طريقة التسبيح</div>
+      <p class="lead">أربع وثلاثون تكبيرة، ثم ثلاث وثلاثون تحميدة، ثم ثلاث وثلاثون تسبيحة، والمجموع مئة. ويُستحب بعد كل صلاة قبل أن يثني المصلّي رجليه.</p>
+      <div class="h3">فضل التسبيح</div>
+      ${ZAHRA_FADL.map(q => `<div class="quote"><cite>${esc(q.by)}</cite><p>${esc(q.x)}</p></div>`).join('')}
+      <p class="bp">وورد أنّ من سبّح ثم استغفر غُفر له. وللتأكد من الأحكام والتفاصيل يُرجع إلى المرجع الديني.</p>
+      <div class="h3">متى يُستحب</div>
+      <ul class="steps">
+        <li><b>•</b><span>بعد كل صلاة مفروضة، قبل أن يثني المصلّي رجليه أو يتحرك من مكانه.</span></li>
+        <li><b>•</b><span>قبل النوم.</span></li>
+        <li><b>•</b><span>قبل زيارة الأئمة (عليهم السلام).</span></li>
+      </ul>
+      <a class="golink" href="#dua-taqib-general"><span>التعقيبات العامة بعد الصلاة</span>${svg('chevL')}</a>`;
+    const dock = `<div class="dock"><div class="in">
+      <button data-act="zu" aria-label="تراجع عن آخر عدّة">${svg('undo')}<span>تراجع</span></button>
+      <button class="nx zt" id="zTap" data-act="zt"></button></div></div>`;
+    return { html: page({ title: 'تسبيح الزهراء', body, dock }), after: paintZahra };
+  }
+  function paintZahra() {
+    if (!$('#zCtr')) return;
+    const z = Z(), s = ZAHRA[z.s], T = s.n;
+    const total = z.done ? ZAHRA_ALL : ZAHRA.slice(0, z.s).reduce((a, x) => a + x.n, 0) + z.n;
+    $('#zChips').innerHTML = ZAHRA.map((x, i) => `<div class="zc${(z.done || i < z.s) ? ' d' : ''}${(!z.done && i === z.s) ? ' c' : ''}"><b>${esc(x.k)}</b><span class="num">${x.n}</span></div>`).join('');
+    $('#zPrg').style.strokeDashoffset = CIRC * (1 - (z.done ? 1 : z.n / T));
+    $('#zRing').classList.toggle('fin', z.done);
+    $('#zMid').innerHTML = z.done ? svg('check', 'class="ok"') : `<span class="big num">${z.n}</span><span class="of">من ${T}</span>`;
+    $('#zPh').textContent = z.done ? 'تقبّل الله' : s.x;
+    $('#zHint').innerHTML = z.done ? `<b>أتممتَ التسبيح</b> · ${ZAHRA_ALL} من ${ZAHRA_ALL}` : `المجموع <b class="num">${total}</b> من ${ZAHRA_ALL}`;
+    const tap = $('#zTap'); tap.textContent = z.done ? 'اكتمل التسبيح' : `اضغط مع كل ${s.w}`; tap.disabled = z.done;
+    $('#zFin').innerHTML = z.done
+      ? `<div class="fin-banner"><b>تقبّل الله منك</b><span>أتممتَ تسبيح الزهراء (عليها السلام): 34 تكبيرة، و33 تحميدة، و33 تسبيحة. وورد أنّ من سبّح ثم استغفر غُفر له.</span><button class="cta alt" data-act="zn">ابدأ تسبيحاً جديداً</button></div>`
+      : '';
+  }
+
   /* ---------------- مكتبة الأدعية والتعقيبات (مفاتيح الجنان) ---------------- */
   const DAY_IDS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
   function viewDuaList() {
@@ -2026,6 +2117,7 @@ const DUAS = [
     if (h === 'umra' || h === 'hajj') return { v: 'start', id: h };
     if ((m = h.match(/^(umra|hajj)-run$/))) return { v: 'run', id: m[1] };
     if ((m = h.match(/^(umra|hajj)-done$/))) return { v: 'done', id: m[1] };
+    if (h === 'zahra') return { v: 'zahra' };
     if (h === 'duas') return { v: 'dualist' };
     if ((m = h.match(/^dua-(.+)$/))) return { v: 'dua-item', id: m[1] };
     if (h === 'rajab') return { v: 'rajab' };
@@ -2043,6 +2135,7 @@ const DUAS = [
       case 'start': out = viewStart(CUR.id); break;
       case 'run': out = viewRun(CUR.id); break;
       case 'done': out = viewDone(CUR.id); break;
+      case 'zahra': out = viewZahra(); break;
       case 'dualist': out = viewDuaList(); break;
       case 'dua-item': out = viewDuaItem(CUR.id); break;
       case 'rajab': out = viewRajab(); break;
@@ -2055,7 +2148,7 @@ const DUAS = [
     $('#app').innerHTML = out.html;
     $('#app').scrollTop = 0;
     if (out.after) out.after();
-    keepAwake(CUR.v === 'run');
+    keepAwake(CUR.v === 'run' || CUR.v === 'zahra');
   }
 
   /* ---------------- actions ---------------- */
@@ -2116,6 +2209,26 @@ const DUAS = [
       S.dhikr[id] = clamp((S.dhikr[id] || 0) + (+el.dataset.by), 0, T); save(); buzz(10); paintDh(box, S.dhikr[id], T);
     },
     dhr(el) { confirmTap(el, 'تأكيد؟', () => { const box = el.closest('[data-dh]'); S.dhikr[box.dataset.dh] = 0; save(); paintDh(box, 0, +box.dataset.n); }); },
+    zt() {
+      const z = Z(); if (z.done) return;
+      let flash = false; z.n++; buzz(14);
+      if (z.n >= ZAHRA[z.s].n) {
+        if (z.s < ZAHRA.length - 1) { z.s++; z.n = 0; buzz([30, 60, 30]); flash = true; }
+        else { z.n = 0; z.done = true; buzz([40, 60, 40, 60, 90]); }
+      }
+      save(); paintZahra();
+      if (flash) { const ph = $('#zPh'); if (ph) { ph.classList.remove('flash'); void ph.offsetWidth; ph.classList.add('flash'); } }
+    },
+    zu() {
+      const z = Z();
+      if (z.done) { z.done = false; z.s = ZAHRA.length - 1; z.n = ZAHRA[z.s].n - 1; }
+      else if (z.n > 0) z.n--;
+      else if (z.s > 0) { z.s--; z.n = ZAHRA[z.s].n - 1; }
+      else return;
+      save(); paintZahra();
+    },
+    zr(el) { confirmTap(el, 'اضغط للتأكيد', () => { S.zahra = { s: 0, n: 0, done: false }; save(); paintZahra(); }); },
+    zn() { S.zahra = { s: 0, n: 0, done: false }; save(); paintZahra(); },
     dr(el) {
       const row = el.closest('[data-dr]'), key = row.dataset.dr, T = +row.dataset.n;
       S.dhikr[key] = Math.min(T, (S.dhikr[key] || 0) + 1); save(); buzz(10);
