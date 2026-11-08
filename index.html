@@ -1499,7 +1499,14 @@ const DUAS = [
   ];
   function Z() {
     let z = S.zahra; if (!z || typeof z !== 'object') z = S.zahra = { s: 0, n: 0, done: false };
-    z.s = clamp(z.s | 0, 0, ZAHRA.length - 1); z.n = clamp(z.n | 0, 0, ZAHRA[z.s].n - 1); z.done = !!z.done;
+    const last = ZAHRA.length - 1;
+    z.s = clamp(z.s | 0, 0, last); z.done = !!z.done;
+    if (z.done) { z.s = last; z.n = ZAHRA[last].n; }
+    else {
+      z.n = clamp(z.n | 0, 0, ZAHRA[z.s].n);
+      if (z.n === 0 && z.s > 0) { z.s--; z.n = ZAHRA[z.s].n; }          // حفظ قديم: بداية مرحلة بصفر -> المرحلة السابقة ممتلئة
+      if (z.s === last && z.n >= ZAHRA[last].n) z.done = true;
+    }
     return z;
   }
 
@@ -1990,15 +1997,17 @@ const DUAS = [
   }
   function paintZahra() {
     if (!$('#zCtr')) return;
-    const z = Z(), s = ZAHRA[z.s], T = s.n;
-    const total = z.done ? ZAHRA_ALL : ZAHRA.slice(0, z.s).reduce((a, x) => a + x.n, 0) + z.n;
-    $('#zChips').innerHTML = ZAHRA.map((x, i) => `<div class="zc${(z.done || i < z.s) ? ' d' : ''}${(!z.done && i === z.s) ? ' c' : ''}"><b>${esc(x.k)}</b><span class="num">${x.n}</span></div>`).join('');
-    $('#zPrg').style.strokeDashoffset = CIRC * (1 - (z.done ? 1 : z.n / T));
+    const z = Z(), s = ZAHRA[z.s], T = s.n, full = z.n >= T, next = ZAHRA[z.s + 1];
+    const total = ZAHRA.slice(0, z.s).reduce((a, x) => a + x.n, 0) + z.n;
+    $('#zChips').innerHTML = ZAHRA.map((x, i) => `<div class="zc${(i < z.s || (i === z.s && full)) ? ' d' : ''}${(!full && i === z.s) ? ' c' : ''}"><b>${esc(x.k)}</b><span class="num">${x.n}</span></div>`).join('');
+    $('#zPrg').style.strokeDashoffset = CIRC * (1 - z.n / T);
     $('#zRing').classList.toggle('fin', z.done);
-    $('#zMid').innerHTML = z.done ? svg('check', 'class="ok"') : `<span class="big num">${z.n}</span><span class="of">من ${T}</span>`;
+    $('#zMid').innerHTML = `<span class="big num">${z.n}</span><span class="of">من ${T}</span>`;
     $('#zPh').textContent = z.done ? 'تقبّل الله' : s.x;
-    $('#zHint').innerHTML = z.done ? `<b>أتممتَ التسبيح</b> · ${ZAHRA_ALL} من ${ZAHRA_ALL}` : `المجموع <b class="num">${total}</b> من ${ZAHRA_ALL}`;
-    const tap = $('#zTap'); tap.textContent = z.done ? 'اكتمل التسبيح' : `اضغط مع كل ${s.w}`; tap.disabled = z.done;
+    $('#zHint').innerHTML = z.done ? `<b>أتممتَ التسبيح</b> · ${ZAHRA_ALL} من ${ZAHRA_ALL}`
+      : full ? `<b>اكتمل ${esc(s.k)}</b> · المجموع <b class="num">${total}</b> من ${ZAHRA_ALL}`
+      : `المجموع <b class="num">${total}</b> من ${ZAHRA_ALL}`;
+    const tap = $('#zTap'); tap.textContent = z.done ? 'اكتمل التسبيح' : full ? `اضغط مع أول ${next.w}` : `اضغط مع كل ${s.w}`; tap.disabled = z.done;
     $('#zFin').innerHTML = z.done
       ? `<div class="fin-banner"><b>تقبّل الله منك</b><span>أتممتَ تسبيح الزهراء (عليها السلام): 34 تكبيرة، و33 تحميدة، و33 تسبيحة. وورد أنّ من سبّح ثم استغفر غُفر له.</span><button class="cta alt" data-act="zn">ابدأ تسبيحاً جديداً</button></div>`
       : '';
@@ -2211,19 +2220,19 @@ const DUAS = [
     dhr(el) { confirmTap(el, 'تأكيد؟', () => { const box = el.closest('[data-dh]'); S.dhikr[box.dataset.dh] = 0; save(); paintDh(box, 0, +box.dataset.n); }); },
     zt() {
       const z = Z(); if (z.done) return;
-      let flash = false; z.n++; buzz(14);
-      if (z.n >= ZAHRA[z.s].n) {
-        if (z.s < ZAHRA.length - 1) { z.s++; z.n = 0; buzz([30, 60, 30]); flash = true; }
-        else { z.n = 0; z.done = true; buzz([40, 60, 40, 60, 90]); }
-      }
+      const last = ZAHRA.length - 1; let flash = false;
+      if (z.n >= ZAHRA[z.s].n) { z.s++; z.n = 1; flash = true; buzz([30, 60, 30]); }   // المرحلة السابقة كانت ممتلئة: هذه أول عدّة في التالية
+      else { z.n++; buzz(14); }
+      if (z.s === last && z.n >= ZAHRA[last].n) { z.done = true; buzz([40, 60, 40, 60, 90]); }
+      else if (!flash && z.n >= ZAHRA[z.s].n) buzz([20, 40, 20]);                      // اكتملت المرحلة: يبقى الرقم ظاهرًا
       save(); paintZahra();
       if (flash) { const ph = $('#zPh'); if (ph) { ph.classList.remove('flash'); void ph.offsetWidth; ph.classList.add('flash'); } }
     },
     zu() {
       const z = Z();
-      if (z.done) { z.done = false; z.s = ZAHRA.length - 1; z.n = ZAHRA[z.s].n - 1; }
-      else if (z.n > 0) z.n--;
-      else if (z.s > 0) { z.s--; z.n = ZAHRA[z.s].n - 1; }
+      if (z.done) { z.done = false; z.n = ZAHRA[z.s].n - 1; }
+      else if (z.n > 1) z.n--;
+      else if (z.n === 1) { if (z.s > 0) { z.s--; z.n = ZAHRA[z.s].n; } else z.n = 0; }
       else return;
       save(); paintZahra();
     },
